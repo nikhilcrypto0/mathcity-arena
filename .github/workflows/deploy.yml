@@ -1,0 +1,17 @@
+name: Deploy to Render
+
+# Render was connected via public-repo URL, which does not support Render-side
+# auto-deploy webhooks. This workflow calls the service's private deploy hook
+# (stored as an encrypted secret) on every push to main instead.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger-render-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          curl -fsS "${{ secrets.RENDER_DEPLOY_HOOK }}" -o /dev/null
+          echo "Render deploy triggered for $GITHUB_SHA"
