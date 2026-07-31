@@ -42,7 +42,9 @@ const io = new Server(httpServer, {
 
 const matchmaking = wireSockets(io);
 
-httpServer.listen(PORT, () => {
+// Bind explicitly to 0.0.0.0 — hosting routers (e.g. Render) detect and route
+// to IPv4 binds; Node's default dual-stack bind confuses their port scanning.
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`[mathcity] server listening on http://localhost:${PORT}`);
   console.log(`[mathcity] Socket.IO ready — multiplayer + demo mode available`);
 });
