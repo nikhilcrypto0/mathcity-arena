@@ -72,6 +72,7 @@ const defaultSettings: Settings = {
 interface AppState {
   connected: boolean;
   profile: PlayerProfile | null;
+  seasonLabel: string;
   team: Team | null;
   party: PartyView | null;
   queue: { searching: boolean; mode: MatchMode | null };
@@ -100,6 +101,7 @@ let toastCounter = 0;
 export const useApp = create<AppState>((set, get) => ({
   connected: false,
   profile: null,
+  seasonLabel: '',
   team: null,
   party: null,
   queue: { searching: false, mode: null },
