@@ -1,63 +1,74 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Shield, LockKeyhole, BadgeCheck } from 'lucide-react';
 import { CHARACTERS, CHARACTER_IDS } from '@mathcity/shared';
 import { useApp } from '../lib/store.ts';
 import { CharacterArt } from '../components/Art.tsx';
-import { Badge, Button, Card, SectionTitle } from '../components/ui.tsx';
+
+const COLORS = ['green', 'blue', 'pink', 'violet'] as const;
 
 export default function Characters() {
   const profile = useApp((s) => s.profile);
+  const navigate = useNavigate();
   const unlocked = new Set(profile?.unlockedCharacters ?? ['scout', 'archer']);
 
   return (
-    <div className="space-y-4 animate-slide-up">
-      <div>
-        <SectionTitle className="text-2xl">Character Collection</SectionTitle>
-        <p className="text-sm text-slate-400">
-          Characters unlock permanently by learning mathematics — owning one still requires
-          match resources, energy and timing to deploy.
-        </p>
-      </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {CHARACTER_IDS.map((id) => {
+    <main className="subpage">
+      <button className="back-button" onClick={() => navigate('/hub')}><ArrowLeft /> Back to Game Hub</button>
+
+      <section className="subpage-heading">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <span className="academy-emblem"><Shield /></span>
+          <div>
+            <span className="eyebrow">THE KNOWLEDGE ROSTER</span>
+            <h1>Character collection</h1>
+            <p>Characters unlock permanently by learning mathematics — deploying one in a match still costs energy, mana and timing.</p>
+          </div>
+        </div>
+        <div className="collection-count">
+          <strong>{unlocked.size} / {CHARACTER_IDS.length}</strong>
+          <span>unlocked</span>
+        </div>
+      </section>
+
+      <div className="collection-grid" aria-label="Character collection">
+        {CHARACTER_IDS.map((id, i) => {
           const def = CHARACTERS[id];
           const isUnlocked = unlocked.has(id);
+          const color = def.tier === 'dragon' ? 'violet' : COLORS[i % COLORS.length];
+          const best = profile?.trials?.[id]?.bestScore ?? 0;
+          const mastery = isUnlocked ? 100 : Math.min(90, 30 + best * 12);
           return (
-            <Card key={id} className={def.tier === 'dragon' ? 'border-sunrise-500/30' : ''}>
-              <div className="flex gap-3 mb-2">
-                <div className={isUnlocked ? 'animate-float' : ''}>
-                  <CharacterArt id={id} size={72} locked={!isUnlocked} />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-black truncate">{def.name}</p>
-                  <p className="text-xs text-slate-400 italic mb-1">{def.title}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {isUnlocked ? <Badge tone="green">Unlocked</Badge> : <Badge tone="slate">🔒 Locked</Badge>}
-                    {def.tier === 'dragon' && <Badge tone="gold">Dragon</Badge>}
-                  </div>
-                </div>
+            <Link
+              key={id}
+              to={`/academy/${id}`}
+              className={`character-card ${color} ${isUnlocked ? '' : 'locked'}`}
+              aria-label={`${def.name} — ${isUnlocked ? 'unlocked' : 'locked'}`}
+            >
+              <div className="character-level">{isUnlocked ? 'UNLOCKED' : `${def.deployCost.energy}⚡`}</div>
+              {isUnlocked
+                ? <BadgeCheck className="lock-icon" style={{ background: 'rgba(57,217,154,.35)' }} />
+                : <LockKeyhole className="lock-icon" />}
+              <div className="character-portrait">
+                <div style={{ position: 'relative', zIndex: 2 }}><CharacterArt id={id} size={132} locked={!isUnlocked} /></div>
+                <div className="portrait-glow" />
               </div>
-              <p className="text-xs text-slate-300 mb-2">{def.description}</p>
-              <p className="text-[11px] text-slate-400 mb-1">
-                <span className="font-bold text-lake-300">Mathematics:</span> {def.topics.join(', ').replace(/_/g, ' ')}
-              </p>
-              <p className="text-[11px] text-slate-400 mb-2">
-                <span className="font-bold text-lake-300">Abilities:</span> {def.abilities.join(' · ')}
-              </p>
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
-                <span>⚡{def.deployCost.energy} ✨{def.deployCost.mana} · ⚔{def.power} · ❤{def.health}</span>
-                {def.maxPerMatch !== null && <span className="text-sunrise-300">{def.maxPerMatch}/match</span>}
+              <div className="character-info">
+                <strong>{def.name}</strong>
+                <small>{def.topics.slice(0, 2).join(' + ').replace(/_/g, ' ')}</small>
+                <div className="mastery"><i style={{ width: `${mastery}%` }} /></div>
               </div>
-              {!isUnlocked && (
-                <Link to={`/academy/${id}`} className="block mt-3">
-                  <Button variant="gold" size="sm" className="w-full">
-                    Unlock: master {def.topics[0].replace(/_/g, ' ')} →
-                  </Button>
-                </Link>
-              )}
-            </Card>
+            </Link>
           );
         })}
       </div>
-    </div>
+
+      <div className="free-promise">
+        <BadgeCheck />
+        <div>
+          <strong>100% free — every character, dragon and lesson.</strong>
+          <p>Advanced mathematics is open to everyone. No payments, ever.</p>
+        </div>
+      </div>
+    </main>
   );
 }
