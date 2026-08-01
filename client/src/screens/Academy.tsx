@@ -1,13 +1,38 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, BookOpen, ChevronRight, Crown } from 'lucide-react';
 import type { CharacterId } from '@mathcity/shared';
 import { useApp } from '../lib/store.ts';
 import { apiClient, type AcademyPathInfo } from '../lib/api.ts';
 import { CharacterArt } from '../components/Art.tsx';
-import { Badge, Card, ProgressBar, SectionTitle } from '../components/ui.tsx';
+
+function PathList({ title, meta, paths }: { title: string; meta: string; paths: AcademyPathInfo[] }) {
+  return (
+    <article className="game-card learning-paths">
+      <div className="card-header"><span>{title}</span><small>{meta}</small></div>
+      {paths.map((p) => {
+        const pct = p.unlocked ? 100
+          : Math.min(95, Math.round((p.trialProgress.bestScore / p.trialQuestionCount) * 100));
+        return (
+          <Link key={p.characterId} to={`/academy/${p.characterId}`} className="path-row">
+            <span><CharacterArt id={p.characterId as CharacterId} size={34} locked={!p.unlocked} /></span>
+            <div>
+              <strong>{p.character.name}</strong>
+              <small>{p.path.title}</small>
+              <i><em style={{ width: `${pct}%` }} /></i>
+            </div>
+            <b>{p.unlocked ? 'DONE' : `${p.trialProgress.bestScore}/${p.trialQuestionCount}`}</b>
+            <ChevronRight />
+          </Link>
+        );
+      })}
+    </article>
+  );
+}
 
 export default function Academy() {
   const profile = useApp((s) => s.profile);
+  const navigate = useNavigate();
   const [paths, setPaths] = useState<AcademyPathInfo[]>([]);
 
   useEffect(() => {
@@ -16,66 +41,38 @@ export default function Academy() {
 
   const core = paths.filter((p) => p.character.tier !== 'dragon');
   const dragons = paths.filter((p) => p.character.tier === 'dragon');
+  const unlockedCount = paths.filter((p) => p.unlocked).length;
 
   return (
-    <div className="space-y-6 animate-slide-up">
-      <div>
-        <SectionTitle className="text-2xl">Training Academy</SectionTitle>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Every character guards a knowledge path: read the lesson, study the worked example,
-          practice, then pass the trial to unlock the character — permanently, for free.
-          Advanced mathematics is open to everyone, at any age.
-        </p>
-      </div>
+    <main className="subpage">
+      <button className="back-button" onClick={() => navigate('/hub')}><ArrowLeft /> Back to Game Hub</button>
 
-      <PathGrid title="Knowledge paths" paths={core} />
-      <PathGrid title="Dragon trials — advanced mastery" paths={dragons} gold />
-    </div>
-  );
-}
+      <section className="subpage-heading">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <span className="academy-emblem"><BookOpen /></span>
+          <div>
+            <span className="eyebrow">TRAINING ACADEMY</span>
+            <h1>Learn mathematics, unlock heroes.</h1>
+            <p>Read the lesson, study the worked example, practice, then pass the trial to unlock a character — permanently and free. Advanced mathematics is open to everyone.</p>
+          </div>
+        </div>
+        <div className="collection-count">
+          <strong>{unlockedCount} / {paths.length || 10}</strong>
+          <span>paths mastered</span>
+        </div>
+      </section>
 
-function PathGrid({ title, paths, gold = false }: { title: string; paths: AcademyPathInfo[]; gold?: boolean }) {
-  return (
-    <div>
-      <h3 className={`font-black uppercase tracking-wide text-sm mb-3 ${gold ? 'text-sunrise-400' : 'text-lake-300'}`}>{title}</h3>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {paths.map((p) => (
-          <Link key={p.characterId} to={`/academy/${p.characterId}`} className="block group">
-            <Card className={`h-full transition-all group-hover:border-lake-400/60 ${p.unlocked ? '' : 'opacity-90'}`}>
-              <div className="flex gap-3">
-                <CharacterArt id={p.characterId as CharacterId} size={64} locked={!p.unlocked} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-black truncate">{p.character.name}</p>
-                  <p className="text-xs text-slate-400 mb-1">{p.path.title}</p>
-                  {p.unlocked ? (
-                    <Badge tone="green">Unlocked</Badge>
-                  ) : (
-                    <Badge tone={gold ? 'gold' : 'slate'}>
-                      Trial: {p.passMark}/{p.trialQuestionCount} to pass
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3">
-                <ProgressBar
-                  value={p.unlocked ? p.trialQuestionCount : p.trialProgress.bestScore}
-                  max={p.trialQuestionCount}
-                  color={p.unlocked ? 'var(--color-meadow-500)' : 'var(--color-sunrise-500)'}
-                  label={`${p.character.name} trial progress`}
-                  height={6}
-                />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {p.unlocked
-                    ? 'Mastered — test it in the arena!'
-                    : p.trialProgress.attempts > 0
-                      ? `Best: ${p.trialProgress.bestScore}/${p.trialQuestionCount} · ${p.trialProgress.attempts} attempt${p.trialProgress.attempts === 1 ? '' : 's'} — retry freely`
-                      : `Topics: ${p.character.topics.join(', ').replace(/_/g, ' ')}`}
-                </p>
-              </div>
-            </Card>
-          </Link>
-        ))}
+      <div className="training-grid" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
+        <PathList title="KNOWLEDGE PATHS" meta={`${core.filter((p) => p.unlocked).length}/${core.length}`} paths={core} />
+        <div style={{ display: 'grid', gap: 18 }}>
+          <PathList title="DRAGON TRIALS — ADVANCED MASTERY" meta={`${dragons.filter((p) => p.unlocked).length}/${dragons.length}`} paths={dragons} />
+          <article className="game-card party-quick-card">
+            <div className="party-live"><Crown /><span>MYTHIC PATH<strong>Three dragons await</strong></span></div>
+            <p>Dragon trials need advanced answers solved in real matches. Master the core paths first, then claim the sky.</p>
+            <Link to="/characters" style={{ textDecoration: 'none' }}><button><Crown /> View the roster <ChevronRight /></button></Link>
+          </article>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
